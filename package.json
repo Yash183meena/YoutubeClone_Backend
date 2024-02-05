@@ -1,0 +1,19 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "my first backend project",
+  "main": "index.js",
+  "type":"module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "yash",
+    "meena",
+    "project",
+    "in",
+    "backend"
+  ],
+  "author": "",
+  "license": "ISC"
+}
