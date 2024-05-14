@@ -14,10 +14,12 @@ app.use(express.json({limit:"16kb"}));
 app.use(express.urlencoded({extended:true,limit:"16kb"}));
 //kuch folder ko access krne ke liye jaise images,dist
 app.use(express.static("public"));
-
 //server se cookies access karne ke liye aur usme crud operation perform krne ke liye
 app.use(cookieParser())
 
+//routes import(seggregation of files)
+import userRoutes from './routes/user.routes.js';
+app.use('/api/v1/users',userRoutes);
 export {app}
 
 

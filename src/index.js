@@ -1,12 +1,17 @@
 import dotenv from 'dotenv'
 import ConnectDb from './db/index.js';
-// import express from 'express';
+import {app} from './app.js'
 
 // const app=express();
 
+//iske liye settings krni padte hai nodemon ke sath jo package.json me hai
 dotenv.config({
       path:'./env'
 });
+
+app.get('/api/test',(req,res)=>{
+      res.send("My name is yash");
+})
 
 ConnectDb()
 .then(()=>{
@@ -15,8 +20,12 @@ ConnectDb()
       })
 })
 .catch((error)=>{
-      console.log("Connection Failed",error);
+      console.log("Connection Failed !!!",error);
 })
+
+
+
+
 
 
 
