@@ -6,7 +6,7 @@ import {app} from './app.js'
 
 //iske liye settings krni padte hai nodemon ke sath jo package.json me hai
 dotenv.config({
-      path:'./env'
+      path:'./.env'
 });
 
 app.get('/api/test',(req,res)=>{
