@@ -3,7 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/apiResponse.js";
-
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens=async(userId)=>{
 
@@ -104,11 +104,12 @@ export const registerUser=asyncHandler(async(req,res)=>{
       )
 })
 
+
 export const loginUser=asyncHandler(async(req,res)=>{
         
-      const {email,username}=req.body;
+      const {email,username,password}=req.body;
       
-      if(!username || !email){
+      if(!username && !email){
             throw new ApiError(400,"username or password is required");
       }
 
@@ -132,7 +133,7 @@ export const loginUser=asyncHandler(async(req,res)=>{
 
       //user ke andar abhi refresh token nahi hai. kyuki refreshtoken lene ke call uske line 131 me maare hai user phele hi le liya gya hai line 115 pr
 
-       const loggedinUser=await User.findById(user._id).select("-password refreshToken");
+       const loggedinUser=await User.findById(user._id).select("-password -refreshToken");
 
        const options={
             httpOnly:true,
@@ -179,4 +180,50 @@ export const logoutUser=asyncHandler(async(req,res)=>{
           .clearCookie("refreshToken",options)
           .json(new ApiResponse(200,{},"User logged Out"))
 
+})
+
+export const refreshAccessToken=asyncHandler(async(req,res)=>{
+      const incomingRefreshToken=req.cokkies.refreshToken || req.body.refreshToken;
+      
+      if(incomingRefreshToken){
+            throw new ApiError(401,"unauthorized request");
+      }
+
+      try {
+            const decodedToken=jwt.verify(
+                  incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET
+            )
+      
+            //database dusare continent me hota hai isliye await ka use kro
+            const user=await findById(decodedToken?._id);
+      
+            if(!user){
+                  throw new ApiError(401,"invalid refresh token");
+            }
+      
+            if(incomingRefreshToken!==user?.refreshToken){
+                 throw new ApiError(401,"Refresh token is expired");
+            }
+      
+            const options={
+                  htppOnly:true,
+                  secure:true
+            }
+      
+            const {accessToken,newRefreshToken}=await generateAccessAndRefreshTokens(user._id);
+          
+            return res
+              .status(200)
+              .cookie("accessToken",accessToken,options)
+              .cookie("refreshToken",newRefreshToken,options)
+              .json(
+                  new ApiResponse(
+                        200,
+                        {accessToken,refreshToken:newRefreshToken},
+                        "Access token refreshed"
+                  )
+              )
+      } catch (error) {
+            throw new ApiError(401,error?.message || "Invalid refresh token");
+      }
 })

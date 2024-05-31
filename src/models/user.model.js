@@ -61,9 +61,9 @@ userschema.pre("save",async function(next){
 //userschema.methods se apn methods add kr skte hai . apne hiab se jitne chaiye utne methods add kr sakte hai apne (userschema ke andar jo method schema me nahi hoe wo add krdo apne hisab se)
 
 //yaha pr password tou plain text password hai aur this.password ek hashed password hai
-userschema.methods.isPasswordCorrect=async function(password){
-      await bcrypt.compare(password,this.password)
-}
+userschema.methods.isPasswordCorrect = async function(password){
+      return await bcrypt.compare(password, this.password)
+  }
 
 userschema.methods.generateAccessToken=function(){
        return jwt.sign(
