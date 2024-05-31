@@ -4,6 +4,24 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/apiResponse.js";
 
+
+const generateAccessAndRefreshTokens=async(userId)=>{
+
+      try{
+         const user=await User.findOne(userId);
+         const accessToken=user.generateAccessToken();
+         const refreshToken=user.generateRefreshToken();
+
+         user.refreshToken=refreshToken;
+         user.save({validateBeforeSave:false});
+          
+         return {accessToken,refreshToken};
+      }
+      catch(error){
+             throw new ApiError(500,"Something went wrong while generating refresh and access token");
+      }
+}
+
 //.json({message:"ok"}) ye ek response bjheja hai apn ne 
 export const registerUser=asyncHandler(async(req,res)=>{
       //get user details from frontend if not take from postman
@@ -84,4 +102,81 @@ export const registerUser=asyncHandler(async(req,res)=>{
       return res.status(201).json(
             new ApiResponse(200,createdUser,"User registered Successfully")
       )
+})
+
+export const loginUser=asyncHandler(async(req,res)=>{
+        
+      const {email,username}=req.body;
+      
+      if(!username || !email){
+            throw new ApiError(400,"username or password is required");
+      }
+
+      const user = await User.findOne({
+            //these are the operators of mongoDb
+            $or:[{username},{email}]
+      });
+
+      //agar user mila hi nahi
+      if(!user){
+            throw new ApiError(404,"user does not exist");
+      }
+
+      const isPasswordValid = await user.isPasswordCorrect(password);
+
+      if(!isPasswordValid){
+            throw new ApiError(401,"invalid user credentials!");
+      }
+
+      const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id);
+
+      //user ke andar abhi refresh token nahi hai. kyuki refreshtoken lene ke call uske line 131 me maare hai user phele hi le liya gya hai line 115 pr
+
+       const loggedinUser=await User.findById(user._id).select("-password refreshToken");
+
+       const options={
+            httpOnly:true,
+            secure:true
+       }
+
+       return res
+       .status(200)
+       .cookie("accessToken",accessToken,options)
+       .cookie("refreshToken",refreshToken,options)
+       .json(
+            new ApiResponse(
+                  200,
+                  {
+                        user:loggedinUser,accessToken,refreshToken
+                  },
+                  "User logged In Successfully"
+            )
+       )
+
+})
+
+export const logoutUser=asyncHandler(async(req,res)=>{
+         await User.findByIdAndUpdate(
+            // In MongoDB, the $set operator is used to update the value of a field in a document. If the field does not exist, $set will create it. This operator is useful for both modifying existing fields and adding new fields to documents
+            req.user._id,{
+                  $set:{
+                        refreshToken:undefined
+                  }
+            },
+            {
+                  new:true
+            }
+         )
+
+         const options={
+            httpOnly:true,
+            secure:true
+         }
+
+          return res
+          .status(200)
+          .clearCookie("accessToken",options)
+          .clearCookie("refreshToken",options)
+          .json(new ApiResponse(200,{},"User logged Out"))
+
 })
